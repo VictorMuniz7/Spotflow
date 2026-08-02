@@ -1,0 +1,9 @@
+# Lagune
+/.lagune/templates/
+/.lagune/hooks/
+/.lagune/proofs/
+/.lagune/specializations.md
+/.lagune/skills/*
+!/.lagune/skills/angular.md
+/**/lagune.*
+/**/lagune/

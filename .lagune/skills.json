@@ -1,0 +1,9 @@
+{
+  "name": "lagune",
+  "entries": [
+    {
+      "name": "angular",
+      "tags": ["Vite", "DOM", "Virtual DOM"]
+    }
+  ]
+}
