@@ -1,0 +1,78 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: spotflow
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: spotflow/package-lock.json
+
+      - run: npm ci
+
+      # environment.ts is gitignored (see src/environments/environment.example.ts),
+      # so CI writes it from repo secrets instead. None of these are server
+      # secrets (PKCE has no client secret; the Supabase anon key is public
+      # by design, RLS is what enforces access) — see .lagune/memory/charter.md.
+      - name: Write environment.ts from secrets
+        env:
+          SPOTIFY_CLIENT_ID: ${{ secrets.SPOTIFY_CLIENT_ID }}
+          SPOTIFY_REDIRECT_URI: ${{ secrets.SPOTIFY_REDIRECT_URI }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          cat > src/environments/environment.ts <<EOF
+          export const environment = {
+            spotifyClientId: '${SPOTIFY_CLIENT_ID}',
+            spotifyRedirectUri: '${SPOTIFY_REDIRECT_URI}',
+            supabaseUrl: '${SUPABASE_URL}',
+            supabaseAnonKey: '${SUPABASE_ANON_KEY}',
+          };
+          EOF
+
+      - name: Build (base href set to the repo name for GitHub Pages project sites)
+        run: npx ng build --configuration production --base-href "/${{ github.event.repository.name }}/"
+
+      # GitHub Pages has no server-side rewrites: any deep link (a route like
+      # /playlists, or Spotify's OAuth redirect landing on /callback) 404s
+      # unless a 404.html exists to serve the app shell instead. index.csr.html
+      # (the pure client-rendered shell, no baked-in prerendered route) is used
+      # rather than index.html (prerendered specifically for "/") to avoid a
+      # hydration mismatch when the shell boots on a different route.
+      - name: Add SPA fallback (404.html)
+        run: cp dist/spotflow/browser/index.csr.html dist/spotflow/browser/404.html
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: spotflow/dist/spotflow/browser
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

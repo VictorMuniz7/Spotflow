@@ -1,0 +1,13 @@
+/* Web Workers run in a separate global scope (no DOM), so they need their
+   own program: mixing "webworker" and "dom" lib types in the same tsconfig
+   causes conflicting global declarations (self, postMessage, close, ...). */
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "outDir": "./out-tsc/worker",
+    "rootDir": "./src",
+    "lib": ["ES2022", "WebWorker"],
+    "types": []
+  },
+  "include": ["src/**/*.worker.ts"]
+}

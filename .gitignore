@@ -1,3 +1,6 @@
+# Root-level tooling (cdp skill: playwright + tsx)
+/node_modules
+
 # Lagune
 /.lagune/templates/
 /.lagune/hooks/
