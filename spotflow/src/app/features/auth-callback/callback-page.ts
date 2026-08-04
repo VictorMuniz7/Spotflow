@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { SpotifyAuthService } from '../../core/services/spotify-auth.service';
 import { UserSessionService } from '../../core/services/user-session.service';
+import { describeSpotifyAuthError } from '../../core/services/spotify-error.util';
 import { ToastService } from '../../shared/ui/toast.service';
 import { LoadingSpinner } from '../../shared/ui/loading-spinner';
 
@@ -43,8 +44,10 @@ export class CallbackPage {
       await this.auth.completeLogin(code, state);
       const profile = await this.session.ensureProfileLoaded();
       void this.router.navigateByUrl(profile?.product === 'premium' ? '/playlists' : '/premium-required');
-    } catch {
-      this.toast.error('Não foi possível concluir o login. Tente novamente.');
+    } catch (error) {
+      console.error('Failed to complete login', error);
+      this.toast.error(describeSpotifyAuthError(error));
+      await this.session.logout();
       void this.router.navigateByUrl('/');
     }
   }

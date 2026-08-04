@@ -27,10 +27,20 @@ export class UserSessionService {
       return this.profileState();
     }
     if (!this.loadPromise) {
-      this.loadPromise = this.api.getMyProfile().then((profile) => {
-        this.profileState.set(profile);
-        return profile;
-      });
+      this.loadPromise = this.api.getMyProfile().then(
+        (profile) => {
+          this.profileState.set(profile);
+          return profile;
+        },
+        (error) => {
+          // Don't cache a failed load: a rejected promise returned here
+          // forever would make every later retry (e.g. the splash screen
+          // re-checking after the callback's own attempt already failed)
+          // resolve to that same stale rejection instead of trying again.
+          this.loadPromise = null;
+          throw error;
+        },
+      );
     }
     return this.loadPromise;
   }

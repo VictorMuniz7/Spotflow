@@ -127,7 +127,13 @@ export class SpotifyAuthService {
     });
 
     if (!response.ok) {
-      throw new Error('Spotify token exchange failed.');
+      // Tagged with `status` (mirroring HttpErrorResponse) so callers can
+      // tell a Spotify-side rejection (e.g. 403 for a Development Mode app
+      // the account isn't allowed to use) from a generic network failure —
+      // see describeSpotifyAuthError.
+      throw Object.assign(new Error(`Spotify token exchange failed (${response.status}).`), {
+        status: response.status,
+      });
     }
 
     const data = (await response.json()) as {

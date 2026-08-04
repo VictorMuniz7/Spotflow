@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/cor
 import { Router } from '@angular/router';
 import { SpotifyAuthService } from '../../core/services/spotify-auth.service';
 import { UserSessionService } from '../../core/services/user-session.service';
+import { describeSpotifyAuthError } from '../../core/services/spotify-error.util';
 import { ToastService } from '../../shared/ui/toast.service';
 import { GlitchTitle } from '../../shared/ui/glitch-title';
 import { HeroMark } from '../../shared/ui/hero-mark';
@@ -57,11 +58,17 @@ export class SplashPage {
   }
 
   private async routeAfterAuth(): Promise<void> {
-    const profile = await this.session.ensureProfileLoaded();
-    if (profile?.product === 'premium') {
-      void this.router.navigateByUrl('/playlists');
-    } else if (profile) {
-      void this.router.navigateByUrl('/premium-required');
+    try {
+      const profile = await this.session.ensureProfileLoaded();
+      if (profile?.product === 'premium') {
+        void this.router.navigateByUrl('/playlists');
+      } else if (profile) {
+        void this.router.navigateByUrl('/premium-required');
+      }
+    } catch (error) {
+      console.error('Failed to load profile', error);
+      this.toast.error(describeSpotifyAuthError(error));
+      await this.session.logout();
     }
   }
 }
