@@ -96,6 +96,10 @@ export class GamePage implements OnDestroy {
   }
 
   private startRound(): void {
+    // Defensive: guarantees no leftover timer from a previous round (e.g.
+    // one abandoned by an early correct guess) can still be running here.
+    this.clearProgressInterval();
+    this.clearAnswerCountdown();
     this.currentOutcome.set(null);
     this.game.startNextRound();
     this.phase.set('ready');
@@ -150,6 +154,12 @@ export class GamePage implements OnDestroy {
     if (this.phase() !== 'answering' && this.phase() !== 'playing') {
       return;
     }
+    // A correct guess can land while still in the 'playing' phase (before
+    // the 5s clip ends), while its progress ticker is still running — clear
+    // it here too, not just in onPlay()'s finally, otherwise it keeps
+    // ticking in the background and collides with the next round's own
+    // ticker once Play is pressed again.
+    this.clearProgressInterval();
     this.clearAnswerCountdown();
     const outcome = this.game.submitGuess(guessedTrackId);
     this.currentOutcome.set(outcome);
